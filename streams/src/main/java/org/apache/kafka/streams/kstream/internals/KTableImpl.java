@@ -513,13 +513,10 @@ public class KTableImpl<K, S, V> extends AbstractStream<K, V> implements KTable<
 
     @Override
     public KTable<K, V> suppress(final Suppressed<? super K> suppressed) {
-        final String name;
-        if (suppressed instanceof NamedSuppressed) {
-            final String givenName = ((NamedSuppressed<?>) suppressed).name();
-            name = givenName != null ? givenName : builder.newProcessorName(SUPPRESS_NAME);
-        } else {
+        if (!(suppressed instanceof NamedSuppressed))
             throw new IllegalArgumentException("Custom subclasses of Suppressed are not supported.");
-        }
+
+        final String name = new NamedInternal(((NamedSuppressed<?>) suppressed).name()).orElseGenerateWithPrefix(builder, SUPPRESS_NAME);
 
         final SuppressedInternal<K> suppressedInternal = buildSuppress(suppressed, name);
 

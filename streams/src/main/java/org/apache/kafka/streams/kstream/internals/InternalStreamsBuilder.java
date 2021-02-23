@@ -102,7 +102,7 @@ public class InternalStreamsBuilder implements InternalNameProvider {
 
     public <K, V> KStream<K, V> stream(final Pattern topicPattern,
                                        final ConsumedInternal<K, V> consumed) {
-        final String name = newProcessorName(KStreamImpl.SOURCE_NAME);
+        final String name = new NamedInternal(consumed.name()).orElseGenerateWithPrefix(this, KStreamImpl.SOURCE_NAME);
         final StreamSourceNode<K, V> streamPatternSourceNode = new StreamSourceNode<>(name, topicPattern, consumed);
 
         addGraphNode(root, streamPatternSourceNode);
@@ -227,8 +227,9 @@ public class InternalStreamsBuilder implements InternalNameProvider {
                                                        final org.apache.kafka.streams.processor.api.ProcessorSupplier<KIn, VIn, Void, Void> stateUpdateSupplier) {
         // explicitly disable logging for global stores
         storeBuilder.withLoggingDisabled();
-        final String sourceName = newProcessorName(KStreamImpl.SOURCE_NAME);
-        final String processorName = newProcessorName(KTableImpl.SOURCE_NAME);
+        final NamedInternal namedInternal = new NamedInternal(consumed.name());
+        final String sourceName = namedInternal.suffixWithOrElseGet(TABLE_SOURCE_SUFFIX, this, KStreamImpl.SOURCE_NAME);
+        final String processorName = namedInternal.orElseGenerateWithPrefix(this, KTableImpl.SOURCE_NAME);
         addGlobalStore(
             storeBuilder,
             sourceName,

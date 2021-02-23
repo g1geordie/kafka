@@ -598,8 +598,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
 
         final RepartitionedInternal<K, V> repartitionedInternal = new RepartitionedInternal<>(repartitioned);
 
-        final String name = repartitionedInternal.name() != null ? repartitionedInternal.name() : builder
-            .newProcessorName(REPARTITION_NAME);
+        final String name = new NamedInternal(repartitionedInternal.name()).orElseGenerateWithPrefix(builder, REPARTITION_NAME);
 
         final Serde<V> valueSerde = repartitionedInternal.valueSerde() == null ? this.valueSerde : repartitionedInternal.valueSerde();
         final Serde<K> keySerde = repartitionedInternal.keySerde() == null ? this.keySerde : repartitionedInternal.keySerde();
@@ -1243,8 +1242,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
     public <KR, VR> KStream<KR, VR> transform(final TransformerSupplier<? super K, ? super V, KeyValue<KR, VR>> transformerSupplier,
                                               final String... stateStoreNames) {
         Objects.requireNonNull(transformerSupplier, "transformerSupplier can't be null");
-        final String name = builder.newProcessorName(TRANSFORM_NAME);
-        return flatTransform(new TransformerSupplierAdapter<>(transformerSupplier), Named.as(name), stateStoreNames);
+        return flatTransform(new TransformerSupplierAdapter<>(transformerSupplier), NamedInternal.empty(), stateStoreNames);
     }
 
     @Override
@@ -1259,8 +1257,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
     public <K1, V1> KStream<K1, V1> flatTransform(final TransformerSupplier<? super K, ? super V, Iterable<KeyValue<K1, V1>>> transformerSupplier,
                                                   final String... stateStoreNames) {
         Objects.requireNonNull(transformerSupplier, "transformerSupplier can't be null");
-        final String name = builder.newProcessorName(TRANSFORM_NAME);
-        return flatTransform(transformerSupplier, Named.as(name), stateStoreNames);
+        return flatTransform(transformerSupplier, NamedInternal.empty(), stateStoreNames);
     }
 
     @Override
@@ -1275,7 +1272,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
             Objects.requireNonNull(stateStoreName, "stateStoreNames can't contain `null` as store name");
         }
 
-        final String name = new NamedInternal(named).name();
+        final String name = new NamedInternal(named).orElseGenerateWithPrefix(builder, TRANSFORM_NAME);
         final StatefulProcessorNode<? super K, ? super V> transformNode = new StatefulProcessorNode<>(
             name,
             new ProcessorParameters<>(new KStreamFlatTransform<>(transformerSupplier), name),
@@ -1430,7 +1427,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
     @Override
     public void process(final ProcessorSupplier<? super K, ? super V> processorSupplier,
                         final String... stateStoreNames) {
-        process(processorSupplier, Named.as(builder.newProcessorName(PROCESSOR_NAME)), stateStoreNames);
+        process(processorSupplier, NamedInternal.empty(), stateStoreNames);
     }
 
     @Override
@@ -1445,7 +1442,7 @@ public class KStreamImpl<K, V> extends AbstractStream<K, V> implements KStream<K
             Objects.requireNonNull(stateStoreName, "stateStoreNames can't be null");
         }
 
-        final String name = new NamedInternal(named).name();
+        final String name = new NamedInternal(named).orElseGenerateWithPrefix(builder, PROCESSOR_NAME);
         final StatefulProcessorNode<? super K, ? super V> processNode = new StatefulProcessorNode<>(
             name,
             new ProcessorParameters<>(processorSupplier, name),
